@@ -1,27 +1,51 @@
 import requests
+import json
+import logging
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_WIALON_URL = "https://hst-api.wialon.com/wialon/ajax.html"
 
-def wialon_get_session_eid(w_token: str, wialon_url: str = DEFAULT_WIALON_URL) -> str | None:
+class WialonAuthError(Exception):
+    """Raised when Wialon authentication fails."""
+    pass
+
+def wialon_get_session_eid(w_token: str, wialon_url: str = DEFAULT_WIALON_URL) -> Optional[str]:
     """
     Authenticate with Wialon API using a token and return the session ID (eid).
 
     Args:
         w_token (str): Wialon API token.
-        wialon_url (str, optional): Full URL to the Wialon API endpoint.
-            Defaults to "https://hst-api.wialon.com/wialon/ajax.html".
+        wialon_url (str): URL to Wialon API. Defaults to production endpoint.
 
     Returns:
-        str | None: Session ID (eid) if successful, otherwise None.
+        Optional[str]: Session ID (eid) if successful, otherwise None.
 
     Raises:
-        requests.exceptions.RequestException: If the request fails due to network or HTTP issues.
-
-    Example:
-        eid = wialon_get_session_eid("your_token_here")
-        eid = wialon_get_session_eid("your_token", "https://wialontest.com/wialon/ajax.html")
+        WialonAuthError: If the authentication fails.
+        requests.exceptions.RequestException: If the request fails.
     """
-    url = f'{wialon_url}?svc=token/login&params={{"token":"{w_token}"}}'
-    response = requests.post(url)
-    response.raise_for_status()
-    return response.json().get("eid")
+    try:
+        params = {
+            "svc": "token/login",
+            "params": json.dumps({"token": w_token}),
+        }
+        response = requests.post(wialon_url, params=params)
+        response.raise_for_status()
+
+        data = response.json()
+        eid = data.get("eid")
+
+        if not eid:
+            logger.warning("Wialon returned no session ID: %s", data)
+            raise WialonAuthError("No session ID returned by Wialon")
+
+        return eid
+
+    except requests.RequestException as e:
+        logger.error("Wialon request failed: %s", e)
+        raise
+    except json.JSONDecodeError as e:
+        logger.error("Failed to parse Wialon response: %s", e)
+        raise WialonAuthError("Invalid JSON response from Wialon")
