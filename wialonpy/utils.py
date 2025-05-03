@@ -56,7 +56,6 @@ def wialon_get_session_eid(w_token: str, wialon_url: str = DEFAULT_WIALON_URL) -
         raise WialonAuthError("Invalid JSON response from Wialon")
 
 
-
 def get_wialon_object_id(group_name: str, eid: str, wialon_url: str = DEFAULT_WIALON_URL) -> str:
     """
     Retrieve the ID of a unit group by its name from Wialon.
@@ -118,3 +117,112 @@ def get_wialon_object_id(group_name: str, eid: str, wialon_url: str = DEFAULT_WI
     except (ValueError, KeyError, TypeError) as e:
         logger.error("Failed to parse Wialon response: %s", e)
         raise WialonAPIError("Invalid response format from Wialon") from e
+
+
+def get_wialon_report_id(report_name: str, sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> tuple[str, str]:
+    """
+    Retrieve the ID of a report template by name along with its resource ID.
+
+    Args:
+        sid (str): Session ID for Wialon.
+        report_name (str): The name of the report template to find.
+        wialon_url (str): Base URL to the Wialon API.
+
+    Returns:
+        tuple[str, str]: Tuple of (template_id, resource_id).
+
+    Raises:
+        requests.exceptions.RequestException: If the request fails.
+        WialonAPIError: If the report is not found or response is invalid.
+    """
+    try:
+        params = {
+            "svc": "core/search_items",
+            "params": json.dumps({
+                "spec": {
+                    "itemsType": "avl_resource",
+                    "propName": "reporttemplates",
+                    "propValueMask": "*",
+                    "sortType": "sys_id"
+                },
+                "force": 1,
+                "flags": "4611686018427387903",
+                "from": 0,
+                "to": 0
+            }),
+            "sid": sid
+        }
+        response = requests.get(wialon_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        for report in data.get("items", []):
+            templates = report.get("rep", {}).values()
+            for template in templates:
+                if template.get("n") == report_name:
+                    return str(template["id"]), str(report["id"])
+
+        report_list = [f"{tpl.get('n')} (template_id={tpl.get('id')}, resource_id={report.get('id')})"
+                       for report in data.get("items", [])
+                       for tpl in report.get("rep", {}).values()]
+        message = f"Report '{report_name}' not found. Available templates: " + ", ".join(report_list)
+        logger.error(message)
+        raise WialonAPIError(message)
+
+    except requests.RequestException as e:
+        logger.error("Wialon API request failed: %s", e)
+        raise
+    except (ValueError, KeyError, TypeError) as e:
+        logger.error("Failed to parse Wialon response: %s", e)
+        raise WialonAPIError("Invalid response format from Wialon") from e
+
+
+def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, resource_id: str, template_id: str, wialon_url: str = DEFAULT_WIALON_URL) -> dict:
+    """
+    Execute a Wialon report and return the raw response data.
+
+    Args:
+        sid (str): Wialon session ID.
+        time_from (int): Start of the interval (Unix time).
+        time_to (int): End of the interval (Unix time).
+        object_id (str): ID of the Wialon object.
+        resource_id (str): ID of the report's resource.
+        template_id (str): ID of the report template.
+        wialon_url (str): Wialon API URL.
+
+    Returns:
+        dict: Parsed JSON response from the Wialon API.
+
+    Raises:
+        requests.exceptions.RequestException: If the request fails.
+        WialonAPIError: If the response is invalid.
+    """
+    try:
+        params = {
+            "svc": "report/exec_report",
+            "params": json.dumps({
+                "reportResourceId": int(resource_id),
+                "reportTemplateId": int(template_id),
+                "reportObjectId": int(object_id),
+                "reportObjectSecId": 0,
+                "interval": {
+                    "from": int(time_from),
+                    "to": int(time_to),
+                    "flags": 0
+                }
+            }),
+            "sid": sid
+        }
+        response = requests.get(wialon_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        logger.debug("Wialon exec_report response: %s", data)
+        return data
+
+    except requests.RequestException as e:
+        logger.error("Wialon report execution failed: %s", e)
+        raise
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
+        logger.error("Invalid response from Wialon exec_report: %s", e)
+        raise WialonAPIError("Failed to execute report or parse response") from e
+

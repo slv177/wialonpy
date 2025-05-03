@@ -1,5 +1,6 @@
 import pytest
-from wialonpy.utils import wialon_get_session_eid
+from wialonpy.utils import wialon_get_session_eid, get_wialon_object_id
+from wialonpy.utils import WialonAPIError
 from unittest.mock import patch
 import requests
 
