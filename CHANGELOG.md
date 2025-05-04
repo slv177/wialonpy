@@ -1,8 +1,15 @@
+# Changelog
+
+## [0.1.3] - 2025-05-04
+
+### Changed
+- Bump version to 0.1.3 to enable PyPI re-upload after 0.1.2 packaging fix
+
 ## [0.1.2] - 2025-05-04
 
 ### Added
-- `wialon_select_result`: support for retrieving report result rows via `core/batch`
 - `wialon_select_result`: optional parameters `row_from`, `row_to`, `level`
+- `wialon_select_result`: support for retrieving report result rows via `core/batch`
 - `wialon_exec_report`: function to execute reports via `report/exec_report`
 - `get_wialon_group_id_by_name`: group ID lookup by name with error handling and logging
 

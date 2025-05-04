@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="wialonpy",
-    version="0.1.2",
+    version="0.1.3",
     description="A lightweight Python wrapper for the Wialon API by Gurtam",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
