@@ -19,7 +19,7 @@ class WialonAPIError(Exception):
     pass
 
 
-def wialon_get_session_eid(w_token: str, wialon_url: str = DEFAULT_WIALON_URL) -> Optional[str]:
+def get_session_eid(w_token: str, wialon_url: str = DEFAULT_WIALON_URL) -> Optional[str]:
     """
     Authenticate with Wialon API using a token and return the session ID (eid).
 

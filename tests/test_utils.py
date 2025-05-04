@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 import requests
 
-from wialonpy.utils import wialon_get_session_eid
+from wialonpy.utils import get_session_eid
 
 
 @patch("requests.post")
