@@ -7,9 +7,11 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_WIALON_URL = "https://hst-api.wialon.com/wialon/ajax.html"
 
+
 class WialonAuthError(Exception):
     """Raised when Wialon authentication fails."""
     pass
+
 
 class WialonAPIError(Exception):
     """Raised when Wialon API returns invalid or unexpected data."""
@@ -225,4 +227,61 @@ def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, r
     except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
         logger.error("Invalid response from Wialon exec_report: %s", e)
         raise WialonAPIError("Failed to execute report or parse response") from e
+
+
+def wialon_select_result(sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> dict:
+    """
+    Select and retrieve rows from the Wialon report result.
+
+    Args:
+        sid (str): Wialon session ID.
+        wialon_url (str): Wialon API URL.
+
+    Returns:
+        dict: Parsed JSON response from the batch select_result_rows call.
+
+    Raises:
+        requests.exceptions.RequestException: If the request fails.
+        WialonAPIError: If the response is invalid.
+    """
+    try:
+        params = {
+            "svc": "core/batch",
+            "params": json.dumps([
+                {
+                    "svc": "report/select_result_rows",
+                    "params": {
+                        "tableIndex": 0,
+                        "config": {
+                            "type": "range",
+                            "data": {"from": 0, "to": 62, "level": 2},
+                        },
+                    },
+                },
+                {
+                    "svc": "report/select_result_rows",
+                    "params": {
+                        "tableIndex": 1,
+                        "config": {
+                            "type": "range",
+                            "data": {"from": 0, "to": 62, "level": 2},
+                        },
+                    },
+                },
+            ]),
+            "sid": sid
+        }
+
+        response = requests.get(wialon_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        logger.debug("Wialon select_result response: %s", data)
+        return data
+
+    except requests.RequestException as e:
+        logger.error("Wialon select_result request failed: %s", e)
+        raise
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
+        logger.error("Invalid response from Wialon select_result: %s", e)
+        raise WialonAPIError("Failed to select report result rows") from e
 
