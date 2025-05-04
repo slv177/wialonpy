@@ -12,7 +12,7 @@ It provides procedural interface, making it easy and flexible to integrate into 
 
 ## Requirements
 
-- Python 3.13 or newer
+- Python 3.10 or newer
 - requests
 
 ## Installation
