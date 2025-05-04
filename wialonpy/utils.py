@@ -1,7 +1,7 @@
 import requests
 import json
 import logging
-from typing import Optional
+from typing import Optional, List, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -229,16 +229,6 @@ def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, r
         raise WialonAPIError("Failed to execute report or parse response") from e
 
 
-import requests
-import json
-import logging
-from typing import List
-
-logger = logging.getLogger(__name__)
-
-class WialonAPIError(Exception):
-    pass
-
 def wialon_select_result(
     sid: str,
     table_indices: List[int] = [0],
@@ -310,3 +300,55 @@ def wialon_select_result(
         logger.error("Invalid response from Wialon select_result: %s", e)
         raise WialonAPIError("Failed to select report result rows") from e
 
+def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> List[Dict[str, str]]:
+    """
+    Retrieve the list of units (avl_unit) from Wialon.
+
+    Args:
+        sid (str): Wialon session ID.
+        wialon_url (str): Wialon API URL.
+
+    Returns:
+        List[Dict[str, str]]: List of units with 'id' and 'name'.
+
+    Raises:
+        requests.exceptions.RequestException: If the request fails.
+        WialonAPIError: If the response is invalid or empty.
+    """
+    try:
+        params = {
+            "svc": "core/search_items",
+            "params": json.dumps({
+                "spec": {
+                    "itemsType": "avl_unit",
+                    "propName": "avl_unit",
+                    "propValueMask": "*",
+                    "sortType": "sys_id"
+                },
+                "force": 1,
+                "flags": 9,  # minimal data: id + name
+                "from": 0,
+                "to": 0
+            }),
+            "sid": sid
+        }
+
+        response = requests.get(wialon_url, params=params)
+        logger.debug("Wialon get_units request URL: %s", response.url)
+        response.raise_for_status()
+        data = response.json()
+
+        raw_units = data.get("items", [])
+        if not isinstance(raw_units, list):
+            raise WialonAPIError("Invalid format: 'items' is not a list")
+
+        units = [{"id": str(unit.get("id")), "name": unit.get("nm", "")} for unit in raw_units]
+        logger.info("Получено %d юнитов из Wialon.", len(units))
+        return units
+
+    except requests.RequestException as e:
+        logger.error("Wialon API request failed: %s", e)
+        raise
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
+        logger.error("Failed to parse Wialon response: %s", e)
+        raise WialonAPIError("Invalid response format from Wialon") from e
