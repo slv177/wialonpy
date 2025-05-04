@@ -300,13 +300,14 @@ def wialon_select_result(
         logger.error("Invalid response from Wialon select_result: %s", e)
         raise WialonAPIError("Failed to select report result rows") from e
 
-def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> List[Dict[str, str]]:
+def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL, flags: int = 9) -> List[Dict[str, str]]:
     """
     Retrieve the list of units (avl_unit) from Wialon.
 
     Args:
         sid (str): Wialon session ID.
         wialon_url (str): Wialon API URL.
+        flags (int): Bitmask to define which fields to return for each unit. Default is 9 (id + name).
 
     Returns:
         List[Dict[str, str]]: List of units with 'id' and 'name'.
@@ -326,7 +327,7 @@ def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> List[Dic
                     "sortType": "sys_id"
                 },
                 "force": 1,
-                "flags": 9,  # minimal data: id + name
+                "flags": flags,
                 "from": 0,
                 "to": 0
             }),
@@ -337,13 +338,13 @@ def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> List[Dic
         logger.debug("Wialon get_units request URL: %s", response.url)
         response.raise_for_status()
         data = response.json()
-
+        print(data)
         raw_units = data.get("items", [])
         if not isinstance(raw_units, list):
             raise WialonAPIError("Invalid format: 'items' is not a list")
 
         units = [{"id": str(unit.get("id")), "name": unit.get("nm", "")} for unit in raw_units]
-        logger.info("Получено %d юнитов из Wialon.", len(units))
+        logger.info("Retrieved %d units from Wialon.", len(units))
         return units
 
     except requests.RequestException as e:
