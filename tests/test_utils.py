@@ -1,8 +1,10 @@
-import pytest
-from wialonpy.utils import wialon_get_session_eid, get_wialon_object_id
-from wialonpy.utils import WialonAPIError
 from unittest.mock import patch
+
+import pytest
 import requests
+
+from wialonpy.utils import wialon_get_session_eid
+
 
 @patch("requests.post")
 def test_wialon_get_session_eid_default_url(mock_post):
@@ -14,6 +16,7 @@ def test_wialon_get_session_eid_default_url(mock_post):
     mock_post.assert_called_once()
     assert "hst-api.wialon.com" in mock_post.call_args[0][0]
 
+
 @patch("requests.post")
 def test_wialon_get_session_eid_custom_url(mock_post):
     mock_post.return_value.status_code = 200
@@ -23,6 +26,7 @@ def test_wialon_get_session_eid_custom_url(mock_post):
     assert result == "custom-url-session-id"
     mock_post.assert_called_once()
     assert "glonass24.com" in mock_post.call_args[0][0]
+
 
 @patch("requests.post")
 def test_wialon_get_session_eid_http_error(mock_post):

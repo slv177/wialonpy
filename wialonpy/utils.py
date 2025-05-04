@@ -1,7 +1,8 @@
-import requests
 import json
 import logging
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +180,8 @@ def get_wialon_report_id(report_name: str, sid: str, wialon_url: str = DEFAULT_W
         raise WialonAPIError("Invalid response format from Wialon") from e
 
 
-def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, resource_id: str, template_id: str, wialon_url: str = DEFAULT_WIALON_URL) -> dict:
+def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, resource_id: str, template_id: str,
+                       wialon_url: str = DEFAULT_WIALON_URL) -> dict:
     """
     Execute a Wialon report and return the raw response data.
 
@@ -300,6 +302,7 @@ def wialon_select_result(
         logger.error("Invalid response from Wialon select_result: %s", e)
         raise WialonAPIError("Failed to select report result rows") from e
 
+
 def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL, flags: int = 9) -> List[Dict[str, str]]:
     """
     Retrieve the list of units (avl_unit) from Wialon.
@@ -338,7 +341,7 @@ def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL, flags: int 
         logger.debug("Wialon get_units request URL: %s", response.url)
         response.raise_for_status()
         data = response.json()
-        print(data)
+
         raw_units = data.get("items", [])
         if not isinstance(raw_units, list):
             raise WialonAPIError("Invalid format: 'items' is not a list")
