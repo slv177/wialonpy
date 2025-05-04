@@ -229,46 +229,71 @@ def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, r
         raise WialonAPIError("Failed to execute report or parse response") from e
 
 
-def wialon_select_result(sid: str, wialon_url: str = DEFAULT_WIALON_URL) -> dict:
+import requests
+import json
+import logging
+from typing import List
+
+logger = logging.getLogger(__name__)
+
+class WialonAPIError(Exception):
+    pass
+
+def wialon_select_result(
+    sid: str,
+    table_indices: List[int] = [0],
+    row_from: int = 0,
+    row_to: int = 62,
+    level: int = 2,
+    wialon_url: str = DEFAULT_WIALON_URL
+) -> dict:
     """
     Select and retrieve rows from the Wialon report result.
 
     Args:
         sid (str): Wialon session ID.
-        wialon_url (str): Wialon API URL.
+        table_indices (List[int]): Indices of report tables to fetch.
+        row_from (int): Starting row index (default: 0).
+        row_to (int): Ending row index (default: 62).
+        level (int): Nesting level for rows (default: 2).
+        wialon_url (str): Wialon API endpoint URL.
 
     Returns:
         dict: Parsed JSON response from the batch select_result_rows call.
 
     Raises:
-        requests.exceptions.RequestException: If the request fails.
-        WialonAPIError: If the response is invalid.
+        requests.exceptions.RequestException: For network issues.
+        WialonAPIError: For invalid API responses.
     """
     try:
+        if row_from < 0:
+            raise ValueError(f"'row_from' must be >= 0 (got {row_from})")
+        if row_to < row_from:
+            raise ValueError(f"'row_to' must be >= 'row_from' (got {row_to} < {row_from})")
+        if level not in (0, 1, 2):
+            raise ValueError(f"'level' must be 0, 1 or 2 (got {level})")
+
+        batch_params = [
+            {
+                "svc": "report/select_result_rows",
+                "params": {
+                    "tableIndex": table_index,
+                    "config": {
+                        "type": "range",
+                        "data": {
+                            "from": row_from,
+                            "to": row_to,
+                            "level": level
+                        },
+                    },
+                },
+            }
+            for table_index in table_indices
+        ]
+
         params = {
             "svc": "core/batch",
-            "params": json.dumps([
-                {
-                    "svc": "report/select_result_rows",
-                    "params": {
-                        "tableIndex": 0,
-                        "config": {
-                            "type": "range",
-                            "data": {"from": 0, "to": 62, "level": 2},
-                        },
-                    },
-                },
-                {
-                    "svc": "report/select_result_rows",
-                    "params": {
-                        "tableIndex": 1,
-                        "config": {
-                            "type": "range",
-                            "data": {"from": 0, "to": 62, "level": 2},
-                        },
-                    },
-                },
-            ]),
+            "params": json.dumps(batch_params),
             "sid": sid
         }
 
