@@ -202,21 +202,24 @@ def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, r
         WialonAPIError: If the response is invalid.
     """
     try:
-        params = {
-            "svc": "report/exec_report",
-            "params": json.dumps({
-                "reportResourceId": int(resource_id),
-                "reportTemplateId": int(template_id),
-                "reportObjectId": int(object_id),
-                "reportObjectSecId": 0,
-                "interval": {
-                    "from": int(time_from),
-                    "to": int(time_to),
-                    "flags": 0
-                }
-            }),
-            "sid": sid
-        }
+        params = [
+            ("svc", "report/exec_report"),
+            (
+                "params",
+                json.dumps({
+                    "reportResourceId": int(resource_id),
+                    "reportTemplateId": int(template_id),
+                    "reportObjectId": int(object_id),
+                    "reportObjectSecId": 0,
+                    "interval": {
+                        "from": int(time_from),
+                        "to": int(time_to),
+                        "flags": 0
+                    }
+                }),
+            ),
+            ("sid", sid),
+        ]
         response = requests.get(wialon_url, params=params)
         response.raise_for_status()
         data = response.json()
