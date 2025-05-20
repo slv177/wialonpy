@@ -220,6 +220,7 @@ def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, r
             ),
             ("sid", sid),
         ]
+
         response = requests.get(wialon_url, params=params)
         response.raise_for_status()
         data = response.json()
@@ -244,21 +245,6 @@ def wialon_select_result(
 ) -> dict:
     """
     Select and retrieve rows from the Wialon report result.
-
-    Args:
-        sid (str): Wialon session ID.
-        table_indices (List[int]): Indices of report tables to fetch.
-        row_from (int): Starting row index (default: 0).
-        row_to (int): Ending row index (default: 62).
-        level (int): Nesting level for rows (default: 2).
-        wialon_url (str): Wialon API endpoint URL.
-
-    Returns:
-        dict: Parsed JSON response from the batch select_result_rows call.
-
-    Raises:
-        requests.exceptions.RequestException: For network issues.
-        WialonAPIError: For invalid API responses.
     """
     try:
         if row_from < 0:
@@ -286,13 +272,13 @@ def wialon_select_result(
             for table_index in table_indices
         ]
 
-        params = {
-            "svc": "core/batch",
-            "params": json.dumps(batch_params),
-            "sid": sid
-        }
+        request_params = [
+            ("svc", "core/batch"),
+            ("params", json.dumps(batch_params)),
+            ("sid", sid),
+        ]
 
-        response = requests.get(wialon_url, params=params)
+        response = requests.get(wialon_url, params=request_params)
         response.raise_for_status()
         data = response.json()
         logger.debug("Wialon select_result response: %s", data)
@@ -304,7 +290,6 @@ def wialon_select_result(
     except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
         logger.error("Invalid response from Wialon select_result: %s", e)
         raise WialonAPIError("Failed to select report result rows") from e
-
 
 def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL, flags: int = 9) -> List[Dict[str, str]]:
     """
