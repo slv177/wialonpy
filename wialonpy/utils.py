@@ -310,6 +310,7 @@ def wialon_select_result(
         logger.error("Invalid response from Wialon select_result: %s", e)
         raise WialonAPIError("Failed to select report result rows") from e
 
+
 def get_wialon_units(sid: str, wialon_url: str = DEFAULT_WIALON_URL, flags: int = 9) -> List[Dict[str, str]]:
     """
     Retrieve the list of units (avl_unit) from Wialon.
