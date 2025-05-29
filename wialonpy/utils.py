@@ -40,6 +40,7 @@ def get_session_eid(w_token: str, wialon_url: str = DEFAULT_WIALON_URL) -> Optio
             "params": json.dumps({"token": w_token}),
         }
         response = requests.post(wialon_url, params=params)
+        print(response.url)
         response.raise_for_status()
 
         data = response.json()
@@ -156,6 +157,7 @@ def get_wialon_report_id(report_name: str, sid: str, wialon_url: str = DEFAULT_W
             "sid": sid
         }
         response = requests.get(wialon_url, params=params)
+        print("report url", response.url)
         response.raise_for_status()
         data = response.json()
 
@@ -180,27 +182,18 @@ def get_wialon_report_id(report_name: str, sid: str, wialon_url: str = DEFAULT_W
         raise WialonAPIError("Invalid response format from Wialon") from e
 
 
-def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, resource_id: str, template_id: str,
-                       wialon_url: str = DEFAULT_WIALON_URL) -> dict:
-    """
-    Execute a Wialon report and return the raw response data.
-
-    Args:
-        sid (str): Wialon session ID.
-        time_from (int): Start of the interval (Unix time).
-        time_to (int): End of the interval (Unix time).
-        object_id (str): ID of the Wialon object.
-        resource_id (str): ID of the report's resource.
-        template_id (str): ID of the report template.
-        wialon_url (str): Wialon API URL.
-
-    Returns:
-        dict: Parsed JSON response from the Wialon API.
-
-    Raises:
-        requests.exceptions.RequestException: If the request fails.
-        WialonAPIError: If the response is invalid.
-    """
+def wialon_exec_report(
+    sid: str,
+    time_from: int,
+    time_to: int,
+    object_id: str,
+    resource_id: str,
+    template_id: str,
+    wialon_url: str = DEFAULT_WIALON_URL,
+    *,
+    enable_logging: bool = False,
+    log_handler=None,
+) -> dict:
     try:
         params = [
             ("svc", "report/exec_report"),
@@ -224,6 +217,19 @@ def wialon_exec_report(sid: str, time_from: int, time_to: int, object_id: str, r
         response = requests.get(wialon_url, params=params)
         response.raise_for_status()
         data = response.json()
+
+        if enable_logging and log_handler:
+            log_handler(
+                method="GET",
+                url=response.url,
+                request_headers=response.request.headers,
+                request_body=None,
+                status_code=response.status_code,
+                response_headers=dict(response.headers),
+                response_body=response.text,
+                source="wialon_exec_report",
+            )
+
         logger.debug("Wialon exec_report response: %s", data)
         return data
 
@@ -241,11 +247,11 @@ def wialon_select_result(
     row_from: int = 0,
     row_to: int = 62,
     level: int = 2,
-    wialon_url: str = DEFAULT_WIALON_URL
+    wialon_url: str = DEFAULT_WIALON_URL,
+    *,
+    enable_logging: bool = False,
+    log_handler=None,
 ) -> dict:
-    """
-    Select and retrieve rows from the Wialon report result.
-    """
     try:
         if row_from < 0:
             raise ValueError(f"'row_from' must be >= 0 (got {row_from})")
@@ -281,6 +287,19 @@ def wialon_select_result(
         response = requests.get(wialon_url, params=request_params)
         response.raise_for_status()
         data = response.json()
+
+        if enable_logging and log_handler:
+            log_handler(
+                method="GET",
+                url=response.url,
+                request_headers=response.request.headers,
+                request_body=None,
+                status_code=response.status_code,
+                response_headers=dict(response.headers),
+                response_body=response.text,
+                source="wialon_select_result",
+            )
+
         logger.debug("Wialon select_result response: %s", data)
         return data
 
